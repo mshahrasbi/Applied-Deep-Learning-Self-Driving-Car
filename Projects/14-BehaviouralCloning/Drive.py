@@ -133,6 +133,21 @@
 # we run the code and simulator, but the car speeding up, so the first thing to note is that we don't want it to reach maximum speed, rather we want to
 # set a speed limit.
 # so we are going to add some logic to ensure that the car always moves at a constant speed.
+# what the simulator also does as it sends us the data about the car's current speed which is accessible to us as data speed we will make sure that
+# it is a float value and store it inside of a speed variable:
+#   speed = float(data['speed'])
+# also we specify speed_limit as 10
+# we can enforce the speed limit by setting the throttle value: throttle = 1.0 - (speed / speed_limit)
+# how does this ensure that our car doesn't surpass the speed limit, well the initial speed is going to be zero, so zero divide by 10 is zero, 
+# so the throttle will begin by being 1.0 the car will then keep speeding up but then realize that by the time the speed of the car reaches 10, then 
+# then throttle = 0 and thus enforcing a constant speed at the speed limit.
+# so what we will actually do is end up printing 3 placeholders for current steering_angle, throottle, and speed.
+# after running the simulator again, we see that in the beginning do fine but eventually swaying left and right and finally gets out of the road.
+
+# we noticed that it was swaying side to side a bit in that it seemed to have trouble navigating the road as soon as it approached the ater on the side 
+# of the road this can be attributed to many factors, however our small data set is most likely a contributing factor. we can even run this model on our 
+# second track and eveluate how it perfoms for the sake of experimentation.
+# this means our model most likely has not learned to generalize to a new dataset
 
 
 
@@ -150,6 +165,7 @@ sio = socketio.Server()
     
 app = Flask(__name__) #'__main__'
 
+speed_limit = 10
 
 def img_preprocess(img):
     img = img[60:135, :, :]
@@ -161,12 +177,16 @@ def img_preprocess(img):
 
 @sio.on('telemetry')
 def telemetry(sid, data):
+    speed = float(data['speed'])
     image = Image.open(BytesIO(base64.b64decode(data['image'])))
     image = np.asarray(image)
     image = img_preprocess(image)
     image = np.array([image])
     steering_angle = float(model.predict(image))
-    send_control(steering_angle, 1.0)
+    throttle = 1.0 - (speed / speed_limit)
+    print('{} {} {}'.format(steering_angle, throttle, speed))
+    # send_control(steering_angle, 1.0)
+    send_control(steering_angle, throttle)
 
      
 @sio.on('connect') # reserved 3 names; connect, message, and disconnect
